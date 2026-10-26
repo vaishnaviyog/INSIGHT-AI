@@ -1,0 +1,101 @@
+name: 'Dissertation 1 Stage 1 - pin-state validation'
+version: 1
+author: 'Automated pre-hardware validation'
+steps:
+  # --- 1. Clear path: all sensors far ---
+  - set-control: { part-id: front_us, control: distance, value: 200 }
+  - set-control: { part-id: left_us, control: distance, value: 200 }
+  - set-control: { part-id: right_us, control: distance, value: 200 }
+  - delay: 800ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 0 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 0 }
+
+  # --- 2. Obstacle on left ---
+  - set-control: { part-id: left_us, control: distance, value: 40 }
+  - delay: 800ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 1 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 0 }
+
+  # --- 3. Obstacle on right (left back to clear) ---
+  - set-control: { part-id: left_us, control: distance, value: 200 }
+  - set-control: { part-id: right_us, control: distance, value: 40 }
+  - delay: 800ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 0 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 1 }
+
+  # --- 4. Frontal danger -> STOP (both LEDs) ---
+  - set-control: { part-id: right_us, control: distance, value: 200 }
+  - set-control: { part-id: front_us, control: distance, value: 20 }
+  - delay: 800ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 1 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 1 }
+
+  # --- 5. Both-sides WARNING -> STOP (front back to clear) ---
+  - set-control: { part-id: front_us, control: distance, value: 200 }
+  - set-control: { part-id: left_us, control: distance, value: 40 }
+  - set-control: { part-id: right_us, control: distance, value: 40 }
+  - delay: 800ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 1 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 1 }
+
+  # --- 6. Valid far reading correctly classified SAFE (NOT a sensor
+  # fault test — Wokwi's HC-SR04 'distance' control only accepts
+  # 2-400cm and can never itself produce a real no-echo timeout, so
+  # this checks that a large-but-valid reading stays SAFE, nothing
+  # more; genuine SENSOR_FAULT/DEGRADED testing is in
+  # test_scenario_fault.yaml against a diagram with a sensor's ECHO
+  # wire actually disconnected — see docs/NOVELTY_CONTRIBUTION.md ---
+  - set-control: { part-id: left_us, control: distance, value: 200 }
+  - set-control: { part-id: right_us, control: distance, value: 200 }
+  - set-control: { part-id: front_us, control: distance, value: 400 }
+  - delay: 800ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 0 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 0 }
+
+  # --- 7. Back to clear (confirm recovery) ---
+  - set-control: { part-id: front_us, control: distance, value: 200 }
+  - delay: 800ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 0 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 0 }
+
+  # --- 8. SOS: press button, expect immediate LED HIGH (pattern starts ON) ---
+  - set-control: { part-id: btn_sos, control: pressed, value: 1 }
+  - delay: 100ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 1 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 1 }
+  - set-control: { part-id: btn_sos, control: pressed, value: 0 }
+  - delay: 5100ms
+
+  # --- 9. Control / counter-proof for adaptive compensation: 60cm on
+  # ALL THREE healthy sensors (no fault anywhere) must stay SAFE/CLEAR
+  # — the WARNING threshold is only widened to 75cm when a neighbour
+  # has actually failed (see test_scenario_fault.yaml, which proves
+  # the opposite case: the SAME 60cm DOES trigger WARNING once a
+  # neighbour is faulted). Together these two scenarios prove the
+  # compensation is conditional/adaptive, not a permanently loosened
+  # threshold. See docs/NOVELTY_CONTRIBUTION.md. ---
+  - set-control: { part-id: front_us, control: distance, value: 200 }
+  - set-control: { part-id: left_us, control: distance, value: 60 }
+  - set-control: { part-id: right_us, control: distance, value: 200 }
+  - delay: 800ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 0 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 0 }
+
+  # --- 10. Regression test for a real pre-existing bug found while
+  # building the dual-fault scenario: the original decision chain only
+  # ever checked frontRisk for DANGER — a DANGER-level (<=25cm) reading
+  # from LEFT or RIGHT alone fell through every branch (WARNING !=
+  # DANGER) all the way to CLEAR/DEGRADED, producing NO warning for an
+  # obstacle as close as the front-DANGER case already treats as an
+  # immediate stop. Fixed in main.ino; this proves it stays fixed. ---
+  - set-control: { part-id: left_us, control: distance, value: 20 }
+  - set-control: { part-id: right_us, control: distance, value: 200 }
+  - delay: 800ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 1 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 1 }
+
+  - set-control: { part-id: left_us, control: distance, value: 200 }
+  - set-control: { part-id: right_us, control: distance, value: 20 }
+  - delay: 800ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 1 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 1 }

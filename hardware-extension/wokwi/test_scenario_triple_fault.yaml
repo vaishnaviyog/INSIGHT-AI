@@ -1,0 +1,40 @@
+name: 'Dissertation 1 Stage 1 - total sensor failure fail-safe proof'
+version: 1
+author: 'Automated pre-hardware validation — all-3-sensors-down gap-fill'
+# Run against diagram_triple_fault.json (ALL THREE ECHO lines genuinely
+# disconnected — no healthy sensor remains at all). This is the single
+# most important safety question raised by direct review: can the
+# system ever silently report "all clear" when it is actually blind?
+# This proves it cannot — total sensor failure still produces the same
+# conservative STOP pattern, never CLEAR, via the existing
+# faultCount>=2 fail-safe (docs/NOVELTY_CONTRIBUTION.md §6), which was
+# previously only proven for 2-of-3 failures, not the 3-of-3 case.
+#
+# Usage:
+#   wokwi-cli . --diagram-file diagram_triple_fault.json --scenario test_scenario_triple_fault.yaml --timeout 30000
+steps:
+  # No set-control needed: all three sensors are genuinely disconnected
+  # in this diagram from the moment the simulation boots, so every
+  # cycle from the very first one reports SENSOR_FAULT on all three.
+  #
+  # Timing note: this originally used an 850ms delay here, matching the
+  # ~696-700ms boot-to-first-cycle timing observed repeatedly elsewhere
+  # in this project plus a ~150ms margin. That margin proved too tight
+  # in practice — this exact check intermittently failed on a later
+  # re-run (boot/first-cycle timing can apparently exceed 850ms under
+  # some load/network conditions), even though the underlying firmware
+  # logic was never in question. STOP is a continuous, non-pulsing
+  # state here (unlike DEGRADED elsewhere), so there is no narrow
+  # window to land inside — only boot jitter to clear. 1500ms is the
+  # same generous boot-settle margin used successfully throughout this
+  # project (e.g. test_scenario_dual_fault.yaml, test_scenario_confirm_filter.yaml).
+  - delay: 1500ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 1 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 1 }
+
+  # Hold and re-check after more cycles, proving this isn't a one-off
+  # boot artifact — the fail-safe STOP is sustained indefinitely, not a
+  # single pulse that lapses back to CLEAR.
+  - delay: 1200ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 1 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 1 }

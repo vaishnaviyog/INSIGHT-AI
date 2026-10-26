@@ -1,0 +1,40 @@
+name: 'Dissertation 1 Stage 1 - adaptive fault-tolerant compensation proof'
+version: 1
+author: 'Automated pre-hardware validation — fault-diagram variant'
+# Run against diagram_front_fault.json (front_us ECHO deliberately
+# disconnected), NOT the main diagram.json — Wokwi's HC-SR04 'distance'
+# control only accepts 2-400cm and can never itself produce a true
+# no-echo timeout, so a genuine SENSOR_FAULT can only be simulated by
+# actually disconnecting a wire, not by any set-control value. See
+# docs/NOVELTY_CONTRIBUTION.md.
+#
+# Usage:
+#   wokwi-cli . --diagram-file diagram_front_fault.json --scenario test_scenario_fault.yaml --timeout 30000
+steps:
+  # --- 1. Compensation proof: with front faulted, left at 60cm (beyond
+  # the NORMAL 50cm WARNING threshold, but within the widened 75cm
+  # compensated threshold) should now trigger LEFT warning. Without
+  # compensation this would stay SAFE/CLEAR, same as the control test
+  # in test_scenario.yaml step 9 proves.
+  #
+  # Timing note: since the temporal WARNING confirmation filter
+  # (confirmWarning() in main.ino, see docs/NOVELTY_CONTRIBUTION.md §9)
+  # was added, a WARNING needs 2 CONSECUTIVE raw cycles before it is
+  # acted on — and this is the very first step after boot (~700ms to
+  # the first decision cycle, ~1000ms to the second, per the same
+  # boot-timing behaviour documented in test_scenario_dual_fault.yaml).
+  # 800ms used to be enough for an immediate WARNING; it now lands
+  # between the 1st (unconfirmed) and 2nd (confirmed) cycle, so this
+  # needs 1200ms instead, with the same generous margin used elsewhere. ---
+  - set-control: { part-id: left_us, control: distance, value: 60 }
+  - set-control: { part-id: right_us, control: distance, value: 200 }
+  - delay: 1200ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 1 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 0 }
+
+# The DEGRADED-reachable check previously lived here as step 2, but its
+# narrow 300ms-of-1000ms pulse ON window proved fragile to hit via a
+# delay measured relative to this step's drift (passed standalone,
+# failed in a batch run with identical content). It now has its own
+# dedicated, fresh-from-boot scenario file for a much more consistent
+# timing baseline: see test_scenario_fault_degraded.yaml.

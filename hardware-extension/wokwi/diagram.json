@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "author": "Dissertation 1 (INSIGHT WSN extension prototype)",
+  "editor": "wokwi",
+  "parts": [
+    { "id": "esp32", "type": "wokwi-esp32-devkit-v1", "top": 0, "left": 0, "attrs": {} },
+
+    { "id": "front_us", "type": "wokwi-hc-sr04", "top": -180, "left": 40, "attrs": { "distance": "80" } },
+    { "id": "left_us", "type": "wokwi-hc-sr04", "top": -180, "left": -260, "rotate": -30, "attrs": { "distance": "150" } },
+    { "id": "right_us", "type": "wokwi-hc-sr04", "top": -180, "left": 340, "rotate": 30, "attrs": { "distance": "150" } },
+
+    { "id": "r_front_top", "type": "wokwi-resistor", "top": -100, "left": 40, "rotate": 90, "attrs": { "value": "2200" } },
+    { "id": "r_front_bot", "type": "wokwi-resistor", "top": -60, "left": 40, "rotate": 90, "attrs": { "value": "3300" } },
+
+    { "id": "r_left_top", "type": "wokwi-resistor", "top": -100, "left": -260, "rotate": 90, "attrs": { "value": "2200" } },
+    { "id": "r_left_bot", "type": "wokwi-resistor", "top": -60, "left": -260, "rotate": 90, "attrs": { "value": "3300" } },
+
+    { "id": "r_right_top", "type": "wokwi-resistor", "top": -100, "left": 340, "rotate": 90, "attrs": { "value": "2200" } },
+    { "id": "r_right_bot", "type": "wokwi-resistor", "top": -60, "left": 340, "rotate": 90, "attrs": { "value": "3300" } },
+
+    { "id": "led_left", "type": "wokwi-led", "top": 120, "left": -180, "attrs": { "color": "red", "label": "LEFT haptic (sim)" } },
+    { "id": "r_left", "type": "wokwi-resistor", "top": 140, "left": -220, "attrs": { "value": "220" } },
+
+    { "id": "led_right", "type": "wokwi-led", "top": 120, "left": 300, "attrs": { "color": "red", "label": "RIGHT haptic (sim)" } },
+    { "id": "r_right", "type": "wokwi-resistor", "top": 140, "left": 340, "attrs": { "value": "220" } },
+
+    { "id": "led_status", "type": "wokwi-led", "top": 260, "left": -180, "attrs": { "color": "yellow", "label": "status/debug" } },
+    { "id": "r_status", "type": "wokwi-resistor", "top": 280, "left": -220, "attrs": { "value": "220" } },
+
+    { "id": "buzzer1", "type": "wokwi-buzzer", "top": 260, "left": 300, "attrs": { "volume": "0.2" } },
+
+    { "id": "btn_sos", "type": "wokwi-pushbutton", "top": 400, "left": 60, "attrs": { "color": "red" } }
+  ],
+  "connections": [
+    ["front_us:VCC", "esp32:VIN", "red", ["v20"]],
+    ["front_us:GND", "esp32:GND.1", "black", ["v25"]],
+    ["front_us:TRIG", "esp32:D5", "green", []],
+    ["front_us:ECHO", "r_front_top:1", "blue", []],
+    ["r_front_top:2", "r_front_bot:1", "blue", []],
+    ["r_front_bot:1", "esp32:D18", "blue", []],
+    ["r_front_bot:2", "esp32:GND.1", "black", []],
+
+    ["left_us:VCC", "esp32:VIN", "red", []],
+    ["left_us:GND", "esp32:GND.1", "black", []],
+    ["left_us:TRIG", "esp32:D19", "green", []],
+    ["left_us:ECHO", "r_left_top:1", "blue", []],
+    ["r_left_top:2", "r_left_bot:1", "blue", []],
+    ["r_left_bot:1", "esp32:D21", "blue", []],
+    ["r_left_bot:2", "esp32:GND.1", "black", []],
+
+    ["right_us:VCC", "esp32:VIN", "red", []],
+    ["right_us:GND", "esp32:GND.1", "black", []],
+    ["right_us:TRIG", "esp32:D22", "green", []],
+    ["right_us:ECHO", "r_right_top:1", "blue", []],
+    ["r_right_top:2", "r_right_bot:1", "blue", []],
+    ["r_right_bot:1", "esp32:D23", "blue", []],
+    ["r_right_bot:2", "esp32:GND.1", "black", []],
+
+    ["esp32:D25", "r_left:1", "orange", []],
+    ["r_left:2", "led_left:A", "orange", []],
+    ["led_left:C", "esp32:GND.2", "black", []],
+
+    ["esp32:D26", "r_right:1", "orange", []],
+    ["r_right:2", "led_right:A", "orange", []],
+    ["led_right:C", "esp32:GND.2", "black", []],
+
+    ["esp32:D33", "r_status:1", "yellow", []],
+    ["r_status:2", "led_status:A", "yellow", []],
+    ["led_status:C", "esp32:GND.2", "black", []],
+
+    ["esp32:D27", "buzzer1:2", "purple", []],
+    ["buzzer1:1", "esp32:GND.2", "black", []],
+
+    ["btn_sos:1.l", "esp32:D32", "cyan", []],
+    ["btn_sos:2.l", "esp32:GND.2", "black", []]
+  ],
+  "dependencies": {}
+}

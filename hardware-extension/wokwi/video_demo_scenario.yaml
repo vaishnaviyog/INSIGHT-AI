@@ -1,0 +1,30 @@
+name: 'video demo'
+version: 1
+author: 'demo frame capture'
+steps:
+  # 0. Clear path — held until t=2500
+  - set-control: { part-id: front_us, control: distance, value: 200 }
+  - set-control: { part-id: left_us, control: distance, value: 200 }
+  - set-control: { part-id: right_us, control: distance, value: 200 }
+  - delay: 2500ms
+
+  # 1. Obstacle on left — held until t=5000
+  - set-control: { part-id: left_us, control: distance, value: 40 }
+  - delay: 2500ms
+
+  # 2. Obstacle on right — held until t=7500
+  - set-control: { part-id: left_us, control: distance, value: 200 }
+  - set-control: { part-id: right_us, control: distance, value: 40 }
+  - delay: 2500ms
+
+  # 3. Obstacle straight ahead / STOP — held until t=9500
+  - set-control: { part-id: right_us, control: distance, value: 200 }
+  - set-control: { part-id: front_us, control: distance, value: 20 }
+  - delay: 2000ms
+
+  # 4. SOS press — held until t=11700
+  - set-control: { part-id: front_us, control: distance, value: 200 }
+  - set-control: { part-id: btn_sos, control: pressed, value: 1 }
+  - delay: 100ms
+  - set-control: { part-id: btn_sos, control: pressed, value: 0 }
+  - delay: 2100ms

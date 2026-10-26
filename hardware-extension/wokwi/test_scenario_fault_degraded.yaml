@@ -1,0 +1,62 @@
+name: 'Dissertation 1 Stage 1 - DEGRADED reachable (fresh-boot variant)'
+version: 1
+author: 'Automated pre-hardware validation — fault-diagram variant'
+# Run against diagram_front_fault.json.
+#
+# TIMING HISTORY (read before changing this file again): this check has
+# gone through three designs, each fixing a real problem the last one
+# didn't anticipate:
+#   1. Originally lived as step 2 of test_scenario_fault.yaml, checked
+#      via a delay relative to a PRIOR step — fragile, since timing
+#      jitter accumulates across steps (passed standalone, failed in a
+#      batch run with identical content).
+#   2. Split into this file, checked via a FIXED boot-relative delay
+#      (850ms), reasoning boot-to-first-cycle timing is consistently
+#      ~696-700ms — still fragile, since boot/first-cycle timing can
+#      exceed 850ms under some load/network conditions (confirmed: the
+#      sibling triple-fault test using the same pattern intermittently
+#      failed on a later re-run).
+#   3. THIS VERSION: forces a definitely-not-DEGRADED state (STOP, via
+#      left=20cm DANGER) first, holds well past any boot uncertainty,
+#      then reverts to trigger a DEGRADED transition at a
+#      script-controlled moment — removing boot-jitter dependency
+#      entirely. But this uncovered a DEEPER, structural problem: the
+#      DEGRADED pulse is ON for only 300ms of every 1000ms
+#      (DEGRADED_PULSE_ON_MS / DEGRADED_PULSE_PERIOD_MS in main.ino),
+#      and the transition itself can land anywhere within one
+#      SENSOR_CYCLE_MS (300ms) of the revert command — these two 300ms
+#      windows are the same size, so NO fixed single-delay pin check
+#      can be mathematically guaranteed to always land in the ON phase.
+#      This is not a tuning problem; a wider delay does not fix it,
+#      since the pulse keeps repeating at the same phase forever.
+#
+# FIX: verify DEGRADED is reached via the Serial log text, not pin
+# timing — `DECISION state=DEGRADED` is written exactly once the
+# firmware itself makes that decision, independent of which phase of
+# its own haptic pulse happens to be active at the moment anyone looks.
+# Run with --expect-text, not just --scenario, to apply this check:
+#
+#   wokwi-cli . --diagram-file diagram_front_fault.json --scenario test_scenario_fault_degraded.yaml --expect-text "DECISION state=DEGRADED" --timeout 30000
+#
+# The scenario below still does one pin check — on the STOP state,
+# which (unlike DEGRADED) is steady/non-pulsing, so a fixed-delay pin
+# check is safe there and proves the diagram/decision chain is wired
+# correctly before the DEGRADED transition is even attempted.
+steps:
+  # Force STOP (left DANGER) — proves the baseline is wired correctly
+  # and gives a definite non-DEGRADED starting point. 1500ms is a
+  # generous, boot-jitter-tolerant margin (STOP does not pulse, so no
+  # narrow window to miss here).
+  - set-control: { part-id: left_us, control: distance, value: 20 }
+  - delay: 1500ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 1 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 1 }
+
+  # Revert left to SAFE: front stays faulted, nothing else is
+  # detected -> triggers a DEGRADED transition at a moment this script
+  # controls (not boot timing). Whether the pin visibly shows ON or OFF
+  # at any later instant depends on pulse phase (see note above) — the
+  # authoritative check is --expect-text "DECISION state=DEGRADED"
+  # above, which this delay simply gives time to appear in.
+  - set-control: { part-id: left_us, control: distance, value: 150 }
+  - delay: 1000ms

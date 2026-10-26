@@ -1,0 +1,10 @@
+[wokwi]
+version = 1
+firmware = "build/main.ino.bin"
+elf = "build/main.ino.elf"
+
+# ESP32 devkit-v1, Arduino framework. Open this "wokwi" folder in
+# VS Code with the Wokwi Simulator extension and start the simulation
+# — it auto-builds main.ino (+ wokwi_types.h) into build/ before each
+# run. Same for wokwi.com (paste main.ino + wokwi_types.h as sketch
+# files, diagram.json as the diagram).

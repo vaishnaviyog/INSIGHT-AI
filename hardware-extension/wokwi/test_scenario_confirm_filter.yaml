@@ -1,0 +1,58 @@
+name: 'Dissertation 1 Stage 1 - temporal WARNING confirmation filter proof'
+version: 1
+author: 'Automated pre-hardware validation — Gao et al. (2025) alert-fatigue gap-fill'
+# Run against the main diagram.json (no sensor fault involved here).
+# Proves confirmWarning() in main.ino: a single-cycle WARNING blip is
+# suppressed (never reaches the haptic output), while a sustained
+# WARNING reading is still confirmed and acted on within 2 cycles
+# (600ms, SENSOR_CYCLE_MS=300). See docs/NOVELTY_CONTRIBUTION.md §9.
+#
+# Cycle timing is empirically confirmed stable at exactly 300ms once
+# past boot (seen repeatedly in Serial DECISION timestamps across this
+# project's other scenario runs), so 400ms margins below safely land
+# one cycle past a change (>300ms) while staying short of a second
+# (<600ms).
+#
+# Baseline note: left_us's baseline here is 70cm, not the 200cm used
+# elsewhere in this project. 70cm is still classified SAFE (above the
+# 50cm WARNING threshold), so the CLEAR starting state is unchanged —
+# but a 200->40 single-step jump (delta=160cm) would ALSO cross
+# CLOSING_RATE_DANGER_CM (40cm, see main.ino), independently escalating
+# straight to STOP via the closing-speed mechanism added later and
+# defeating the precise 1-cycle timing this file depends on to test
+# confirmWarning() in isolation. 70->40 (delta=30cm) stays under that
+# threshold, so only the mechanism under test here fires. See
+# test_scenario_closing_speed.yaml for the dedicated proof of the
+# closing-speed mechanism itself.
+#
+# Usage:
+#   wokwi-cli . --scenario test_scenario_confirm_filter.yaml --timeout 30000
+steps:
+  # --- 0. Warm-up / boot settle to a known CLEAR baseline, no
+  # assertions (same reasoning as test_scenario_dual_fault.yaml). ---
+  - set-control: { part-id: front_us, control: distance, value: 200 }
+  - set-control: { part-id: left_us, control: distance, value: 70 }
+  - set-control: { part-id: right_us, control: distance, value: 200 }
+  - delay: 1500ms
+
+  # --- 1. Transient blip: left goes WARNING-level for exactly one
+  # cycle, then reverts before a second cycle can confirm it. This is
+  # the "oversensitive single-mode detection" case Gao et al. (2025)
+  # describe as causing user-reported alert fatigue — the system must
+  # NOT react to it. ---
+  - set-control: { part-id: left_us, control: distance, value: 40 }
+  - delay: 400ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 0 }
+  - set-control: { part-id: left_us, control: distance, value: 70 }
+  - delay: 400ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 0 }
+
+  # --- 2. Sustained reading: left goes WARNING-level and STAYS there.
+  # Must still be confirmed and acted on — the filter delays a
+  # genuine, persistent WARNING by at most one cycle (~300ms), it does
+  # not suppress it. ---
+  - set-control: { part-id: left_us, control: distance, value: 40 }
+  - delay: 400ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 0 }
+  - delay: 400ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 1 }

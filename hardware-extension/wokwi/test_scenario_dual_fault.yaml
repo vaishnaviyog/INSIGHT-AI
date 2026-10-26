@@ -1,0 +1,59 @@
+name: 'Dissertation 1 Stage 1 - correlated dual-fault fail-safe proof'
+version: 1
+author: 'Automated pre-hardware validation — dual-fault diagram variant'
+# Run against diagram_dual_fault.json (front_us AND left_us ECHO both
+# genuinely disconnected — only right_us remains healthy). Proves the
+# literature-motivated fail-safe added to main.ino in response to
+# Muzychenko (2025): "[voting-style fault tolerance] loses
+# effectiveness with ... multiple correlated faults." With 2+ sensors
+# down, compensation is disabled entirely (compensationTrusted=false)
+# rather than silently widening a threshold the literature says is
+# untrustworthy in this exact situation. See docs/NOVELTY_CONTRIBUTION.md.
+#
+# Usage:
+#   wokwi-cli . --diagram-file diagram_dual_fault.json --scenario test_scenario_dual_fault.yaml --timeout 30000
+steps:
+  # --- 0. Warm-up / boot settle, no assertions. The very first
+  # post-boot decision cycle races against the simulator's own
+  # bootloader print sequence (observed to land anywhere from ~700ms to
+  # 800ms+ of scenario time depending on run), which made an assertion
+  # placed directly on step 1 flaky. Every other scenario file in this
+  # project (test_scenario.yaml, test_scenario_fault.yaml) sidesteps
+  # this the same way: never asserting on the very first cycle after
+  # boot. A generous 1500ms here guarantees several full
+  # SENSOR_CYCLE_MS (300ms) cycles have already completed and settled
+  # before step 1's assertion below. ---
+  - set-control: { part-id: right_us, control: distance, value: 200 }
+  - delay: 1500ms
+
+  # --- 1. Fail-safe engages: right (the only healthy sensor) reports
+  # nothing within even its NORMAL (un-widened) range. With single-fault
+  # compensation, this would have been a quiet DEGRADED pulse; with 2
+  # correlated faults, compensation is distrusted entirely and the
+  # system falls back to the same conservative STOP pattern used for a
+  # genuine DANGER reading, rather than presenting false reassurance. ---
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 1 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 1 }
+
+  # --- 2. A genuine DIRECT WARNING from the lone healthy sensor (40cm,
+  # within the NORMAL 50cm threshold — no compensation involved at all)
+  # must still be honoured as RIGHT, not swallowed by the fail-safe.
+  # Real sensor data is always trustworthy regardless of how many OTHER
+  # sensors have failed. ---
+  - set-control: { part-id: right_us, control: distance, value: 40 }
+  - delay: 800ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 0 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 1 }
+
+  # --- 3. A genuine DIRECT DANGER from the lone healthy sensor (20cm)
+  # must still produce STOP via the direct rightRisk==DANGER check —
+  # same pin outcome as step 1's fail-safe STOP, but a structurally
+  # different, higher-precedence code path (see main.ino: the direct
+  # DANGER checks are evaluated before the faultCount>=2 branch). Not
+  # distinguishable from step 1 by pin state alone; verified by code
+  # order, not by this test — documented here so that is not mistaken
+  # for a gap in coverage. ---
+  - set-control: { part-id: right_us, control: distance, value: 20 }
+  - delay: 800ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 1 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 1 }

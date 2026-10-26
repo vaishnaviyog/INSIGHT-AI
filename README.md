@@ -115,6 +115,10 @@ The suite includes unit tests, fixed-seed property/stress tests, GPS-noise simul
 
 `Flutter / Dart` · `TensorFlow Lite (YOLOv8n)` · `SQLite (GTFS)` · `Hive` · `RAPTOR routing` · `OpenRouteService` · `Google Gemini`
 
+## Hardware extension
+
+[`hardware-extension/`](hardware-extension/) explores a separate, external hardware layer for INSIGHT — an ESP32 + ultrasonic-sensor wearable that gives the same kind of obstacle warning through touch instead of sound, with a particular focus on detecting and compensating for its own sensor failures rather than silently losing coverage. Fully simulated end-to-end in Wokwi and verified by 44 automated, executed test assertions; no physical hardware has been built yet. See its own [README](hardware-extension/README.md) for the full architecture, mechanisms, and honest safety-scope/limitations writeup.
+
 ## Academic context
 
 Developed as an SOP (student project) at **VIT Chennai**, School of Advanced Sciences.

@@ -1,0 +1,43 @@
+name: 'Dissertation 1 Stage 1 - closing-speed escalation proof'
+version: 1
+author: 'Automated pre-hardware validation — fast-approaching-obstacle gap-fill'
+# Run against the main diagram.json (no sensor fault involved).
+# Proves isClosingFast()/CLOSING_RATE_DANGER_CM in main.ino: a sensor
+# reading that drops by >= 40cm between two consecutive cycles escalates
+# straight to STOP, even while the new reading is still well outside the
+# normal WARNING/DANGER distance bands. See docs/NOVELTY_CONTRIBUTION.md
+# §10. Addresses the real-world risk that a fast-approaching obstacle
+# (another pedestrian, a cyclist) might not be caught in time by fixed
+# absolute-distance thresholds alone.
+#
+# Usage:
+#   wokwi-cli . --scenario test_scenario_closing_speed.yaml --timeout 30000
+steps:
+  # --- 0. Warm-up / boot settle at a stable, far baseline (150cm on
+  # front), so the NEXT cycle has a known previous reading to compare
+  # against. No assertions (same reasoning as other scenario files). ---
+  - set-control: { part-id: front_us, control: distance, value: 150 }
+  - set-control: { part-id: left_us, control: distance, value: 200 }
+  - set-control: { part-id: right_us, control: distance, value: 200 }
+  - delay: 1500ms
+
+  # --- 1. Fast approach: front jumps 150cm -> 90cm in one cycle
+  # (delta=60cm >= 40cm threshold), and 90cm is still SAFE by the
+  # normal fixed thresholds (WARNING is only <=50cm) — without this
+  # mechanism this would stay CLEAR. Must escalate to STOP instead. ---
+  - set-control: { part-id: front_us, control: distance, value: 90 }
+  - delay: 400ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 1 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 1 }
+
+  # --- 2. Control / counter-proof: from a fresh stable baseline, a
+  # SMALL single-cycle change (150cm -> 120cm, delta=30cm, below the
+  # 40cm threshold) must NOT escalate — proving this triggers on rate
+  # of closure, not merely "distance decreased" or "distance is below
+  # some absolute value" (120cm is not WARNING/DANGER either way). ---
+  - set-control: { part-id: front_us, control: distance, value: 150 }
+  - delay: 1500ms
+  - set-control: { part-id: front_us, control: distance, value: 120 }
+  - delay: 400ms
+  - expect-pin: { part-id: esp32, pin: 'D25', value: 0 }
+  - expect-pin: { part-id: esp32, pin: 'D26', value: 0 }

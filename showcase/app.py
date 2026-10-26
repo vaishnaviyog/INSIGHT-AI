@@ -75,6 +75,19 @@ for title, body in steps:
 
 st.divider()
 
+st.header("Architecture")
+st.caption("Generated directly from the real source code, not drawn freehand.")
+
+st.image("docs/diagrams/figure1_architecture.png", caption="Overall system architecture — navigation pipeline and hazard-detection pipeline, with Core A/Core B integration points.")
+
+d1, d2 = st.columns(2)
+with d1:
+    st.image("docs/diagrams/figure2_core_a_states.png", caption="Core A — transit-session state machine (8 states).")
+with d2:
+    st.image("docs/diagrams/figure3_core_b_pipeline.png", caption="Core B — behaviour-learning event pipeline.")
+
+st.divider()
+
 st.header("Tech stack")
 st.markdown(
     "`Flutter / Dart` · `TensorFlow Lite (YOLOv8n)` · `SQLite (GTFS)` · "

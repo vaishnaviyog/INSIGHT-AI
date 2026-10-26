@@ -22,6 +22,8 @@ INSIGHT is an Android app that helps a blind or low-vision person travel somewhe
 - [The two ideas that make this different](#the-two-ideas-that-make-this-different)
 - [What it does](#what-it-does)
 - [How a journey works](#how-a-journey-works)
+- [Architecture](#architecture)
+- [Screenshots](#screenshots)
 - [Project structure](#project-structure)
 - [Building](#building)
 - [Testing](#testing)
@@ -49,6 +51,26 @@ No reviewed assistive-navigation system combines both of these in one implementa
 3. **Navigate** — camera, GPS, compass, and voice guidance run together; an on-device detector and a transparent risk score decide what gets spoken and how urgently.
 4. **Board and ride** — Core A pauses the camera on boarding and resumes it, with a clean reset, on alighting.
 5. **Arrive** — the app asks where to go next, or ends the session cleanly.
+
+## Architecture
+
+**Overall system** — the main navigation pipeline and the hazard-detection pipeline, with Core A and Core B's integration points annotated.
+
+![System architecture](docs/diagrams/figure1_architecture.png)
+
+**Core A — transit-session state machine** — the full 8-state diagram as implemented, including the camera start/stop contract and GPS-loss handling.
+
+![Core A state machine](docs/diagrams/figure2_core_a_states.png)
+
+**Core B — behaviour-learning pipeline** — the event-driven update flow from six real event types through to the persisted per-user profile.
+
+![Core B pipeline](docs/diagrams/figure3_core_b_pipeline.png)
+
+All three diagrams are generated directly from the real source (`docs/diagrams/make_figure*.py`), not drawn freehand — they describe the code as it actually behaves.
+
+## Screenshots
+
+_Real on-device screenshots coming soon — drop image files into `docs/screenshots/` and they'll show up here._
 
 ## Project structure
 
